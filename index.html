@@ -1,0 +1,781 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>수학 바보 라이어게임</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: one centered column of index cards on graph paper; teacher dashboard widens to a grid of group cards */
+:root{
+  --bg:#EEF2EF; --paper:#FFFFFF; --ink:#16302A; --muted:#5B6F69; --line:#D3DCD7; --grid:rgba(22,48,42,.06);
+  --accent:#E3A21A; --accent-ink:#2A1E00; --accent-soft:#FBEFD2;
+  --liar:#C9423A; --liar-soft:#F8E1DE; --ok:#2B8556; --ok-soft:#DDF0E5; --teal:#1F6B5E; --teal-soft:#DCECE8;
+  --f-display:"Black Han Sans","IBM Plex Sans KR",sans-serif;
+  --f-body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E1916; --paper:#16241F; --ink:#E4EEEA; --muted:#93A8A1; --line:#2A3D37; --grid:rgba(228,238,234,.05);
+  --accent:#F0B53A; --accent-ink:#241900; --accent-soft:#3A2E12;
+  --liar:#EE6A5E; --liar-soft:#3D1F1C; --ok:#4CC285; --ok-soft:#163327; --teal:#5CC2AE; --teal-soft:#183530; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E1916; --paper:#16241F; --ink:#E4EEEA; --muted:#93A8A1; --line:#2A3D37; --grid:rgba(228,238,234,.05);
+  --accent:#F0B53A; --accent-ink:#241900; --accent-soft:#3A2E12;
+  --liar:#EE6A5E; --liar-soft:#3D1F1C; --ok:#4CC285; --ok-soft:#163327; --teal:#5CC2AE; --teal-soft:#183530; color-scheme:dark}
+*{box-sizing:border-box}
+html{color-scheme:light}
+body{margin:0}
+[hidden]{display:none!important}
+img{max-width:100%}
+code{font-family:var(--f-mono);font-size:.9em}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.6;
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:24px 24px}
+.wrap{max-width:720px;margin:0 auto;padding-block:20px 60px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:16px}
+.wrap.wide{max-width:1120px}
+h1,h2,h3{text-wrap:balance;margin:0}
+h1{font-family:var(--f-display);font-weight:400;font-size:clamp(2.2rem,8vw,3.4rem);line-height:1.05;letter-spacing:.01em}
+h2{font-family:var(--f-display);font-weight:400;font-size:1.6rem;line-height:1.2}
+h3{font-size:1.05rem;font-weight:700}
+p{margin:0}
+.muted{color:var(--muted)}
+.small{font-size:.875rem}
+.eyebrow{font-size:.78rem;letter-spacing:.08em;font-weight:700;color:var(--teal)}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.hero{padding:28px 22px;gap:12px}
+.hero .tag{display:inline-flex;align-self:flex-start;background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:.8rem;padding:3px 10px;border-radius:6px;transform:rotate(-2deg)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.row.between{justify-content:space-between}
+.stack{display:flex;flex-direction:column;gap:10px}
+.btn{font:inherit;font-weight:700;border:1.5px solid var(--ink);background:var(--paper);color:var(--ink);padding:11px 18px;border-radius:10px;cursor:pointer;min-height:46px;display:inline-flex;align-items:center;justify-content:center;gap:6px;text-align:center}
+.btn:hover{background:var(--teal-soft)}
+.btn.primary{background:var(--ink);color:var(--paper)}
+.btn.primary:hover{opacity:.9;background:var(--ink)}
+.btn.accent{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.ghost{border-color:var(--line);font-weight:500}
+.btn.danger{border-color:var(--liar);color:var(--liar)}
+.btn.sm{min-height:34px;padding:5px 11px;font-size:.85rem}
+.btn.block{width:100%}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.big-choice{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.big-choice .btn{min-height:96px;flex-direction:column;font-size:1.1rem}
+.big-choice .btn span{font-weight:400;font-size:.82rem;opacity:.8}
+@media (max-width:480px){.big-choice{grid-template-columns:1fr}}
+label.f{display:flex;flex-direction:column;gap:6px;font-weight:700;font-size:.9rem}
+input[type=text],textarea{font:inherit;font-size:1.05rem;padding:11px 13px;border:1.5px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);width:100%;min-width:0}
+input.code-in{font-family:var(--f-mono);font-size:1.6rem;letter-spacing:.3em;text-transform:uppercase;text-align:center}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{font:inherit;border:1.5px solid var(--line);background:var(--paper);color:var(--ink);border-radius:999px;padding:7px 15px;cursor:pointer;font-weight:500;min-height:40px}
+.chip.on{background:var(--ink);color:var(--paper);border-color:var(--ink);font-weight:700}
+.rules{margin:0;padding-left:1.3em;display:flex;flex-direction:column;gap:6px}
+.rules ol{padding-left:1.2em;margin:4px 0 0}
+.notice{background:var(--accent-soft);border-radius:10px;padding:12px 14px;font-size:.92rem}
+.notice.bad{background:var(--liar-soft)}
+.code-big{font-family:var(--f-mono);font-weight:600;font-size:clamp(2.6rem,11vw,4.6rem);letter-spacing:.18em;line-height:1;color:var(--ink)}
+.grid-groups{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+.pill{display:inline-flex;align-items:center;gap:4px;font-size:.78rem;font-weight:700;padding:2px 9px;border-radius:999px;background:var(--teal-soft);color:var(--teal);white-space:nowrap}
+.pill.liar{background:var(--liar-soft);color:var(--liar)}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.wait{background:var(--accent-soft);color:var(--ink)}
+.members{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.members li{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 10px;border-radius:8px;background:var(--bg);font-size:.95rem}
+.members li.me{outline:1.5px solid var(--teal)}
+.members li.turn{background:var(--accent-soft);font-weight:700}
+.x{border:0;background:none;color:var(--muted);cursor:pointer;font-size:1rem;padding:2px 6px;border-radius:6px}
+.x:hover{color:var(--liar)}
+.problem{position:relative;background:var(--paper);border:1.5px solid var(--ink);border-radius:14px;padding:22px 20px 20px;
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:18px 18px;display:flex;flex-direction:column;gap:12px}
+.problem .topic{font-size:.8rem;font-weight:700;color:var(--teal);letter-spacing:.04em}
+.problem .q{font-size:1.15rem;line-height:1.75;font-weight:500}
+.ans-row{display:flex;gap:8px}
+.ans-row input{flex:1}
+.answer-chip{font-family:var(--f-mono);font-weight:600;font-size:1.3rem;background:var(--accent);color:var(--accent-ink);padding:2px 12px;border-radius:8px}
+.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.log li{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start;padding:10px 12px;border-radius:10px;background:var(--bg)}
+.log .who{font-weight:700;white-space:nowrap}
+.log .txt{min-width:0;overflow-wrap:anywhere}
+.log .rd{font-size:.72rem;color:var(--muted);font-family:var(--f-mono)}
+.vote-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.vote-grid .btn.on{background:var(--liar);border-color:var(--liar);color:#fff}
+.banner{border-radius:14px;padding:22px 20px;display:flex;flex-direction:column;gap:6px;border:2px solid}
+.banner.liar{background:var(--liar-soft);border-color:var(--liar)}
+.banner.cit{background:var(--ok-soft);border-color:var(--ok)}
+.banner .big{font-family:var(--f-display);font-size:2rem;line-height:1.1}
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:560px){.cmp{grid-template-columns:1fr}}
+.cmp > div{border:1px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.cmp > div.l{border-color:var(--liar)}
+.tally{display:flex;flex-direction:column;gap:6px}
+.tally .bar{display:grid;grid-template-columns:7em 1fr 2em;gap:8px;align-items:center;font-size:.92rem}
+.tally .track{height:12px;background:var(--bg);border-radius:6px;overflow:hidden}
+.tally .fill{height:100%;background:var(--muted);border-radius:6px}
+.tally .fill.l{background:var(--liar)}
+.tally .n{font-family:var(--f-mono);text-align:right}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.topbar .who{font-size:.9rem;color:var(--muted)}
+.topbar .who b{color:var(--ink)}
+.mono{font-family:var(--f-mono)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:10px;font-size:.92rem;max-width:calc(100% - 32px);z-index:20}
+.steps{display:flex;gap:4px;flex-wrap:wrap}
+.steps span{font-size:.75rem;padding:3px 8px;border-radius:6px;background:var(--bg);color:var(--muted)}
+.steps span.on{background:var(--ink);color:var(--paper);font-weight:700}
+.hide-card{min-height:180px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;border:2px dashed var(--line);border-radius:14px;text-align:center;padding:20px}
+.names-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.names-grid .btn.done{background:var(--ok-soft);border-color:var(--ok);color:var(--ok)}
+details summary{cursor:pointer;font-weight:700}
+@media (prefers-reduced-motion:no-preference){.problem,.banner{animation:pop .25s ease-out}@keyframes pop{from{transform:translateY(6px)}to{transform:none}}}
+</style>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+</head>
+<body>
+
+<div id="app"></div>
+<div id="toast" class="toast" hidden></div>
+
+<script>
+/* ===================== 문제 세트 =====================
+   c: 시민(다수) 문제, l: 라이어 문제. 같은 주제, 다른 답. */
+const SETS = [
+ // ---- 5단원: 도형의 닮음과 피타고라스 정리 ----
+ {id:"5a",u:5,t:"닮은 도형의 대응변",c:{q:"△ABC∽△DEF이고 AB=6 cm, DE=9 cm, BC=8 cm일 때, EF의 길이는 몇 cm일까?",a:"12",unit:"cm"},l:{q:"△ABC∽△DEF이고 AB=4 cm, DE=6 cm, BC=10 cm일 때, EF의 길이는 몇 cm일까?",a:"15",unit:"cm"}},
+ {id:"5b",u:5,t:"닮음비와 둘레",c:{q:"서로 닮은 두 사각형의 대응변의 길이가 각각 6 cm, 9 cm이다. 작은 사각형의 둘레가 20 cm일 때, 큰 사각형의 둘레는 몇 cm일까?",a:"30",unit:"cm"},l:{q:"서로 닮은 두 사각형의 대응변의 길이가 각각 4 cm, 6 cm이다. 작은 사각형의 둘레가 22 cm일 때, 큰 사각형의 둘레는 몇 cm일까?",a:"33",unit:"cm"}},
+ {id:"5c",u:5,t:"닮음비와 넓이의 비",c:{q:"닮음비가 2 : 3인 두 삼각형에서 작은 삼각형의 넓이가 8 cm²일 때, 큰 삼각형의 넓이는 몇 cm²일까?",a:"18",unit:"cm²"},l:{q:"닮음비가 3 : 4인 두 삼각형에서 작은 삼각형의 넓이가 9 cm²일 때, 큰 삼각형의 넓이는 몇 cm²일까?",a:"16",unit:"cm²"}},
+ {id:"5d",u:5,t:"넓이의 비로 길이 구하기",c:{q:"서로 닮은 두 원의 넓이가 각각 9π cm², 25π cm²이다. 작은 원의 반지름이 6 cm일 때, 큰 원의 반지름은 몇 cm일까?",a:"10",unit:"cm"},l:{q:"서로 닮은 두 원의 넓이의 비가 4 : 9이다. 작은 원의 반지름이 6 cm일 때, 큰 원의 반지름은 몇 cm일까?",a:"9",unit:"cm"}},
+ {id:"5e",u:5,t:"닮음비와 부피의 비",c:{q:"닮음비가 1 : 2인 두 원기둥에서 작은 원기둥의 부피가 5 cm³일 때, 큰 원기둥의 부피는 몇 cm³일까?",a:"40",unit:"cm³"},l:{q:"닮음비가 2 : 3인 두 원기둥에서 작은 원기둥의 부피가 16 cm³일 때, 큰 원기둥의 부피는 몇 cm³일까?",a:"54",unit:"cm³"}},
+ {id:"5f",u:5,t:"닮음의 활용 (그림자)",c:{q:"키가 1.5 m인 사람의 그림자 길이가 2 m일 때, 같은 시각 그림자 길이가 8 m인 나무의 높이는 몇 m일까?",a:"6",unit:"m"},l:{q:"길이가 2 m인 막대의 그림자 길이가 3 m일 때, 같은 시각 그림자 길이가 12 m인 건물의 높이는 몇 m일까?",a:"8",unit:"m"}},
+ {id:"5g",u:5,t:"축도와 실제 거리",c:{q:"축척이 1 : 50000인 지도에서 길이가 4 cm인 두 지점 사이의 실제 거리는 몇 km일까?",a:"2",unit:"km"},l:{q:"축척이 1 : 25000인 지도에서 길이가 6 cm인 두 지점 사이의 실제 거리는 몇 km일까?",a:"1.5",unit:"km"}},
+ {id:"5h",u:5,t:"삼각형에서 평행선과 선분의 비",c:{q:"△ABC에서 DE∥BC이고 점 D는 AB 위, 점 E는 AC 위에 있다. AD=4 cm, DB=2 cm, AE=6 cm일 때, EC의 길이는 몇 cm일까?",a:"3",unit:"cm"},l:{q:"△ABC에서 DE∥BC이고 점 D는 AB 위, 점 E는 AC 위에 있다. AD=3 cm, DB=6 cm, AE=2 cm일 때, EC의 길이는 몇 cm일까?",a:"4",unit:"cm"}},
+ {id:"5i",u:5,t:"삼각형에서 평행선과 밑변",c:{q:"△ABC에서 DE∥BC이고 AD : DB = 2 : 1이다. BC=12 cm일 때, DE의 길이는 몇 cm일까?",a:"8",unit:"cm"},l:{q:"△ABC에서 DE∥BC이고 AD : DB = 3 : 1이다. BC=12 cm일 때, DE의 길이는 몇 cm일까?",a:"9",unit:"cm"}},
+ {id:"5j",u:5,t:"두 변의 중점을 이은 선분",c:{q:"△ABC에서 두 점 M, N이 각각 AB, AC의 중점이고 BC=14 cm일 때, MN의 길이는 몇 cm일까?",a:"7",unit:"cm"},l:{q:"△ABC에서 두 점 M, N이 각각 AB, AC의 중점이고 MN=8 cm일 때, BC의 길이는 몇 cm일까?",a:"16",unit:"cm"}},
+ {id:"5k",u:5,t:"평행선 사이의 선분의 비",c:{q:"평행한 세 직선 l, m, n과 두 직선 p, q가 만난다. 직선 p 위에서 l과 m 사이가 4 cm, m과 n 사이가 6 cm이고, 직선 q 위에서 l과 m 사이가 6 cm일 때, 직선 q 위에서 m과 n 사이는 몇 cm일까?",a:"9",unit:"cm"},l:{q:"평행한 세 직선 l, m, n과 두 직선 p, q가 만난다. 직선 p 위에서 l과 m 사이가 3 cm, m과 n 사이가 5 cm이고, 직선 q 위에서 l과 m 사이가 6 cm일 때, 직선 q 위에서 m과 n 사이는 몇 cm일까?",a:"10",unit:"cm"}},
+ {id:"5l",u:5,t:"무게중심과 중선 (꼭짓점 쪽)",c:{q:"△ABC의 무게중심을 G, 중선을 AD라고 하자. AD=12 cm일 때, AG의 길이는 몇 cm일까?",a:"8",unit:"cm"},l:{q:"△ABC의 무게중심을 G, 중선을 AD라고 하자. AD=15 cm일 때, AG의 길이는 몇 cm일까?",a:"10",unit:"cm"}},
+ {id:"5m",u:5,t:"무게중심과 중선 (변 쪽)",c:{q:"△ABC의 무게중심을 G, 중선을 AD라고 하자. AD=18 cm일 때, GD의 길이는 몇 cm일까?",a:"6",unit:"cm"},l:{q:"△ABC의 무게중심을 G, 중선을 AD라고 하자. AG=10 cm일 때, GD의 길이는 몇 cm일까?",a:"5",unit:"cm"}},
+ {id:"5n",u:5,t:"무게중심과 넓이",c:{q:"△ABC의 넓이가 36 cm²이고 점 G가 무게중심일 때, △GBC의 넓이는 몇 cm²일까?",a:"12",unit:"cm²"},l:{q:"△ABC의 넓이가 30 cm²이고 점 G가 무게중심일 때, △GAB의 넓이는 몇 cm²일까?",a:"10",unit:"cm²"}},
+ {id:"5o",u:5,t:"피타고라스 정리 (빗변)",c:{q:"직각을 낀 두 변의 길이가 6 cm, 8 cm인 직각삼각형의 빗변의 길이는 몇 cm일까?",a:"10",unit:"cm"},l:{q:"직각을 낀 두 변의 길이가 5 cm, 12 cm인 직각삼각형의 빗변의 길이는 몇 cm일까?",a:"13",unit:"cm"}},
+ {id:"5p",u:5,t:"피타고라스 정리 (다른 한 변)",c:{q:"빗변의 길이가 17 cm이고 다른 한 변의 길이가 8 cm인 직각삼각형에서 나머지 한 변의 길이는 몇 cm일까?",a:"15",unit:"cm"},l:{q:"빗변의 길이가 13 cm이고 다른 한 변의 길이가 5 cm인 직각삼각형에서 나머지 한 변의 길이는 몇 cm일까?",a:"12",unit:"cm"}},
+ {id:"5q",u:5,t:"직사각형의 대각선",c:{q:"가로가 9 cm, 세로가 12 cm인 직사각형의 대각선의 길이는 몇 cm일까?",a:"15",unit:"cm"},l:{q:"가로가 7 cm, 세로가 24 cm인 직사각형의 대각선의 길이는 몇 cm일까?",a:"25",unit:"cm"}},
+ {id:"5r",u:5,t:"세 변 위의 정사각형 넓이",c:{q:"직각삼각형의 직각을 낀 두 변 위에 그린 정사각형의 넓이가 각각 9 cm², 16 cm²일 때, 빗변 위에 그린 정사각형의 넓이는 몇 cm²일까?",a:"25",unit:"cm²"},l:{q:"직각삼각형의 빗변 위에 그린 정사각형의 넓이가 50 cm²이고, 다른 한 변 위에 그린 정사각형의 넓이가 18 cm²일 때, 나머지 한 변 위에 그린 정사각형의 넓이는 몇 cm²일까?",a:"32",unit:"cm²"}},
+ {id:"5s",u:5,t:"직각삼각형이 되는 조건",c:{q:"세 변의 길이가 다음과 같은 삼각형 중 직각삼각형은 몇 개일까?  (3, 4, 5)  (5, 12, 13)  (6, 7, 8)  (8, 15, 17)  (2, 3, 4)",a:"3",unit:"개"},l:{q:"세 변의 길이가 다음과 같은 삼각형 중 직각삼각형은 몇 개일까?  (3, 4, 5)  (4, 5, 6)  (7, 24, 25)  (5, 6, 7)  (2, 3, 4)",a:"2",unit:"개"}},
+ // ---- 6단원: 확률 ----
+ {id:"6a",u:6,t:"사건과 경우의 수",c:{q:"주사위 한 개를 던질 때, 소수의 눈이 나오는 경우의 수는?",a:"3",unit:"가지"},l:{q:"주사위 한 개를 던질 때, 6의 약수의 눈이 나오는 경우의 수는?",a:"4",unit:"가지"}},
+ {id:"6b",u:6,t:"사건 A 또는 사건 B (합의 법칙)",c:{q:"학교에서 박물관까지 가는 버스 노선이 3가지, 지하철 노선이 4가지 있다. 버스 또는 지하철 중 한 가지를 타고 가는 경우의 수는?",a:"7",unit:"가지"},l:{q:"학교에서 박물관까지 가는 버스 노선이 2가지, 지하철 노선이 6가지 있다. 버스 또는 지하철 중 한 가지를 타고 가는 경우의 수는?",a:"8",unit:"가지"}},
+ {id:"6c",u:6,t:"사건 A와 사건 B (곱의 법칙)",c:{q:"상의 3벌, 하의 4벌 중에서 상의와 하의를 각각 한 벌씩 골라 입는 경우의 수는?",a:"12",unit:"가지"},l:{q:"상의 2벌, 하의 5벌 중에서 상의와 하의를 각각 한 벌씩 골라 입는 경우의 수는?",a:"10",unit:"가지"}},
+ {id:"6d",u:6,t:"동전과 주사위 동시에 던지기",c:{q:"서로 다른 동전 3개를 동시에 던질 때, 일어나는 모든 경우의 수는?",a:"8",unit:"가지"},l:{q:"동전 1개와 주사위 1개를 동시에 던질 때, 일어나는 모든 경우의 수는?",a:"12",unit:"가지"}},
+ {id:"6e",u:6,t:"두 주사위의 눈의 합",c:{q:"서로 다른 주사위 2개를 동시에 던질 때, 나오는 눈의 수의 합이 5인 경우의 수는?",a:"4",unit:"가지"},l:{q:"서로 다른 주사위 2개를 동시에 던질 때, 나오는 눈의 수의 합이 6인 경우의 수는?",a:"5",unit:"가지"}},
+ {id:"6f",u:6,t:"줄 세우기·대표 뽑기",c:{q:"A, B, C 세 명을 한 줄로 세우는 경우의 수는?",a:"6",unit:"가지"},l:{q:"4명 중에서 회장 1명, 부회장 1명을 뽑는 경우의 수는?",a:"12",unit:"가지"}},
+ {id:"6g",u:6,t:"비밀번호 만들기",c:{q:"0부터 9까지의 숫자로 두 자리 비밀번호를 만들 때 (같은 숫자 반복 가능), 만들 수 있는 비밀번호의 개수는?",a:"100",unit:"개"},l:{q:"1부터 9까지의 숫자로 두 자리 비밀번호를 만들 때 (같은 숫자 반복 가능), 만들 수 있는 비밀번호의 개수는?",a:"81",unit:"개"}},
+ {id:"6h",u:6,t:"확률의 뜻 (주사위)",c:{q:"주사위 한 개를 던질 때, 3의 배수의 눈이 나올 확률은? (분수로)",a:"1/3",unit:""},l:{q:"주사위 한 개를 던질 때, 4 이상의 눈이 나올 확률은? (분수로)",a:"1/2",unit:""}},
+ {id:"6i",u:6,t:"확률의 뜻 (주머니 속 구슬)",c:{q:"빨간 구슬 3개, 파란 구슬 5개가 들어 있는 주머니에서 구슬 한 개를 꺼낼 때, 빨간 구슬일 확률은?",a:"3/8",unit:""},l:{q:"빨간 구슬 4개, 파란 구슬 6개가 들어 있는 주머니에서 구슬 한 개를 꺼낼 때, 빨간 구슬일 확률은?",a:"2/5",unit:""}},
+ {id:"6j",u:6,t:"확률이 0 또는 1인 사건",c:{q:"주사위 한 개를 던질 때, 7 이하의 눈이 나올 확률은?",a:"1",unit:""},l:{q:"주사위 한 개를 던질 때, 7 이상의 눈이 나올 확률은?",a:"0",unit:""}},
+ {id:"6k",u:6,t:"어떤 사건이 일어나지 않을 확률",c:{q:"1부터 10까지의 수가 하나씩 적힌 카드 10장 중 한 장을 뽑을 때, 3의 배수가 아닐 확률은?",a:"7/10",unit:""},l:{q:"1부터 10까지의 수가 하나씩 적힌 카드 10장 중 한 장을 뽑을 때, 4의 배수가 아닐 확률은?",a:"4/5",unit:""}},
+ {id:"6l",u:6,t:"사건 A 또는 사건 B가 일어날 확률",c:{q:"1부터 20까지의 수가 하나씩 적힌 카드 20장 중 한 장을 뽑을 때, 4의 배수 또는 7의 배수가 나올 확률은?",a:"7/20",unit:""},l:{q:"1부터 20까지의 수가 하나씩 적힌 카드 20장 중 한 장을 뽑을 때, 5의 배수 또는 7의 배수가 나올 확률은?",a:"3/10",unit:""}},
+ {id:"6m",u:6,t:"사건 A와 사건 B가 동시에 일어날 확률",c:{q:"동전 한 개와 주사위 한 개를 동시에 던질 때, 동전은 앞면이 나오고 주사위는 짝수의 눈이 나올 확률은?",a:"1/4",unit:""},l:{q:"동전 한 개와 주사위 한 개를 동시에 던질 때, 동전은 앞면이 나오고 주사위는 2 이하의 눈이 나올 확률은?",a:"1/6",unit:""}},
+ {id:"6n",u:6,t:"동전 여러 개 던지기",c:{q:"서로 다른 동전 2개를 동시에 던질 때, 모두 앞면이 나올 확률은?",a:"1/4",unit:""},l:{q:"서로 다른 동전 3개를 동시에 던질 때, 모두 앞면이 나올 확률은?",a:"1/8",unit:""}},
+ {id:"6o",u:6,t:"적어도 하나는 앞면",c:{q:"서로 다른 동전 2개를 동시에 던질 때, 적어도 한 개는 앞면이 나올 확률은?",a:"3/4",unit:""},l:{q:"서로 다른 동전 3개를 동시에 던질 때, 적어도 한 개는 앞면이 나올 확률은?",a:"7/8",unit:""}},
+ {id:"6p",u:6,t:"두 주사위의 눈",c:{q:"서로 다른 주사위 2개를 동시에 던질 때, 두 눈의 수가 같을 확률은?",a:"1/6",unit:""},l:{q:"서로 다른 주사위 2개를 동시에 던질 때, 두 눈의 수의 합이 4일 확률은?",a:"1/12",unit:""}},
+ {id:"6q",u:6,t:"꺼낸 공을 다시 넣고 두 번 꺼내기",c:{q:"흰 공 2개, 검은 공 3개가 든 주머니에서 공 한 개를 꺼내 확인하고 다시 넣은 후 또 한 개를 꺼낼 때, 두 번 모두 흰 공일 확률은?",a:"4/25",unit:""},l:{q:"흰 공 3개, 검은 공 2개가 든 주머니에서 공 한 개를 꺼내 확인하고 다시 넣은 후 또 한 개를 꺼낼 때, 두 번 모두 흰 공일 확률은?",a:"9/25",unit:""}},
+ {id:"6r",u:6,t:"가위바위보",c:{q:"두 사람이 가위바위보를 한 번 할 때, 일어나는 모든 경우의 수는?",a:"9",unit:"가지"},l:{q:"두 사람이 가위바위보를 한 번 할 때, 승부가 나는 경우의 수는?",a:"6",unit:"가지"}},
+];
+const SET_BY_ID = Object.fromEntries(SETS.map(s=>[s.id,s]));
+
+/* ===================== 유틸 ===================== */
+const esc = s => String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const lsGet = k => { try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } };
+const lsSet = (k,v) => { try{ v==null?localStorage.removeItem(k):localStorage.setItem(k,JSON.stringify(v)); }catch(e){} };
+const shuffle = a => { a=a.slice(); for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; };
+const pick = a => a[Math.floor(Math.random()*a.length)];
+function parseNum(s){
+  s = String(s??"").replace(/[,\s]/g,"").replace(/[^0-9./\-]/g,"");
+  if(!s) return NaN;
+  if(s.includes("/")){ const [a,b]=s.split("/"); const x=parseFloat(a), y=parseFloat(b); return (isFinite(x)&&isFinite(y)&&y!==0)? x/y : NaN; }
+  return parseFloat(s);
+}
+const sameAns = (input, ans) => { const x=parseNum(input), y=parseNum(ans); return isFinite(x) && Math.abs(x-y)<1e-9; };
+function leaksAnswer(text, ans){
+  const a = ans.replace(/[.*+?^${}()|[\]\\\/]/g,m=>"\\"+m);
+  try{ return new RegExp("(^|[^0-9./])"+a+"($|[^0-9./])").test(text.replace(/\s/g,"")); }catch(e){ return false; }
+}
+function josa(w,a,b){ const c=String(w||'').trim().slice(-1).charCodeAt(0); if(c>=0xAC00&&c<=0xD7A3) return w+(((c-0xAC00)%28)?a:b); return w+'('+a+')'+b; }
+const fmtAns = p => `${p.a}${p.unit?" "+p.unit:""}`;
+function chooseSet(units, used){
+  let pool = SETS.filter(s=>units.includes(s.u));
+  if(!pool.length) pool = SETS;
+  const fresh = pool.filter(s=>!(used||[]).includes(s.id));
+  return pick(fresh.length?fresh:pool);
+}
+const CODE_CH = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+const genCode = () => Array.from({length:5},()=>CODE_CH[Math.floor(Math.random()*CODE_CH.length)]).join("");
+let toastT;
+function toast(msg){ const t=document.getElementById("toast"); t.textContent=msg; t.hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>t.hidden=true,3200); }
+
+const PHASE_LABEL = {lobby:"대기실",solve:"문제 풀기",talk:"설명하기",vote:"라이어 지목",guess:"라이어의 정답 맞히기",result:"결과"};
+const MAX_PER_GROUP = 10, MIN_PLAYERS = 3;
+
+/* ===================== 상태 ===================== */
+const S = {
+  view:"home", dbState:"loading", db:null, uid:null,
+  code:null, room:null, groups:{}, players:{}, loaded:{room:false,groups:false,players:false},
+  unsubs:[], busy:false,
+  tset:{groups:4, units:[5,6]}, myName:"", reveal:false, local:null,
+};
+
+/* ===================== Firebase 설정 =====================
+   Firebase 콘솔 > 프로젝트 설정 > 내 앱(웹)에서 복사한 값으로 아래를 바꿔 주세요. */
+const FIREBASE_CONFIG = {
+  apiKey:"AIzaSyAtoFHluVpI93PdT0jtTL7k-vb0lm-qxjM",
+  authDomain: "liar-game-math.firebaseapp.com",
+  databaseURL: "https://firebase.google.com/docs/web/setup#available-libraries",
+  projectId: "liar-game-math",
+  appId: "1:790735094011:web:5108e88b868a44418f305e"
+};
+
+/* ===================== 초기화 ===================== */
+const CONFIG_MISSING = Object.values(FIREBASE_CONFIG).some(v=>String(v).includes("여기에"));
+function init(){
+  render();
+  if(CONFIG_MISSING || !window.firebase){ S.dbState = CONFIG_MISSING ? "noconfig" : "none"; render(); return; }
+  const timer = setTimeout(()=>{ if(S.dbState==="loading"){ S.dbState="none"; render(); } },12000);
+  try{
+    firebase.initializeApp(FIREBASE_CONFIG);
+    S.db = firebase.database();
+    firebase.auth().onAuthStateChanged(async u=>{
+      if(!u) return;
+      clearTimeout(timer);
+      const first = !S.uid;
+      S.uid = u.uid; S.dbState="ready";
+      if(first){
+        const sess = lsGet("lg_session");
+        if(sess && sess.code){
+          S.myName = sess.name||"";
+          const snap = await S.db.ref(`rooms/${sess.code}/meta`).get().catch(()=>null);
+          if(snap && snap.exists()){ subscribeRoom(sess.code); S.view = sess.role==="teacher"?"teacher":"student"; }
+          else lsSet("lg_session",null);
+        }
+      }
+      render();
+    });
+    firebase.auth().signInAnonymously().catch(e=>{ console.warn(e); clearTimeout(timer); S.dbState="authfail"; render(); });
+  }catch(e){ console.warn(e); clearTimeout(timer); S.dbState="none"; render(); }
+}
+
+const toArr = v => Array.isArray(v) ? v.filter(x=>x!=null) : (v && typeof v==="object" ? Object.keys(v).sort((a,b)=>a-b).map(k=>v[k]) : []);
+function normGroup(v){ v=v||{}; return {...freshGroup(), ...v, members:toArr(v.members), talk:toArr(v.talk), used:toArr(v.used), names:v.names||{}}; }
+function unsubAll(){ S.unsubs.forEach(u=>{try{u()}catch(e){}}); S.unsubs=[]; }
+function listen(path, fn){
+  const r = S.db.ref(path);
+  const cb = r.on("value", fn, e=>{ console.warn(e); toast("데이터를 읽지 못했어요. 데이터베이스 규칙을 확인해 주세요."); });
+  return ()=>r.off("value", cb);
+}
+function subscribeRoom(code){
+  unsubAll();
+  S.code=code; S.room=null; S.groups={}; S.players={}; S.loaded={room:false,groups:false,players:false};
+  S.unsubs.push(listen(`rooms/${code}/meta`, s=>{ S.room = s.val(); S.loaded.room=true; render(); }));
+  S.unsubs.push(listen(`rooms/${code}/groups`, s=>{ const g={}, v=s.val()||{}; Object.keys(v).forEach(k=>g[k]=normGroup(v[k])); S.groups=g; S.loaded.groups=true; render(); }));
+  S.unsubs.push(listen(`rooms/${code}/players`, s=>{ S.players = s.val()||{}; S.loaded.players=true; render(); }));
+}
+const gref = g => S.db.ref(`rooms/${S.code}/groups/${g}`);
+const pref = u => S.db.ref(`rooms/${S.code}/players/${u}`);
+const freshGroup = () => ({phase:"lobby",gameNo:0,rounds:1,members:[],names:{},liar:null,setId:null,turn:0,talk:[],used:[],tally:null,accused:null,guess:null,result:null});
+function playersIn(g){ return Object.entries(S.players).filter(([,p])=>p.group===g).sort((a,b)=>(a[1].joinedAt||0)-(b[1].joinedAt||0)).map(([u])=>u); }
+const nameOf = (G,u) => (S.players[u]&&S.players[u].name) || (G&&G.names&&G.names[u]) || "(나간 학생)";
+const present = (G,g) => (G.members||[]).filter(u=>S.players[u] && S.players[u].group===g);
+
+async function run(fn){
+  if(S.busy) return; S.busy=true; render();
+  try{ await fn(); }catch(e){ console.warn(e); toast(e && e.userMsg ? e.userMsg : "저장하지 못했어요. 인터넷 연결을 확인해 주세요."); }
+  S.busy=false; render();
+}
+const fail = m => { const e=new Error(m); e.userMsg=m; throw e; };
+
+/* ===================== 게임 동작 (온라인) ===================== */
+const A = {
+  home(){ unsubAll(); S.view="home"; S.code=null; render(); },
+  goTeacherSetup(){ S.view="teacherSetup"; render(); },
+  goJoin(){ S.view="join"; render(); },
+  goLocal(){ S.local = {phase:"setup",names:["","",""],rounds:1,units:[5,6],used:[]}; S.view="local"; render(); },
+  setTG(d){ S.tset.groups=+d.n; render(); },
+  toggleUnit(d){ const u=+d.u, arr=S.tset.units; S.tset.units = arr.includes(u)? arr.filter(x=>x!==u) : [...arr,u].sort(); render(); },
+  createRoom(){ run(async()=>{
+    if(!S.tset.units.length) fail("단원을 하나 이상 골라 주세요.");
+    let code; for(let i=0;i<6;i++){ code=genCode(); const s=await S.db.ref(`rooms/${code}/meta`).get(); if(!s.exists()) break; }
+    await S.db.ref(`rooms/${code}/meta`).set({code,teacher:S.uid,groupCount:S.tset.groups,units:S.tset.units,createdAt:Date.now()});
+    for(let g=1; g<=S.tset.groups; g++) await S.db.ref(`rooms/${code}/groups/g${g}`).set(freshGroup());
+    lsSet("lg_session",{role:"teacher",code}); subscribeRoom(code); S.view="teacher";
+  }); },
+  reopenTeacher(d){ run(async()=>{
+    const s = await S.db.ref(`rooms/${d.code}/meta`).get(); if(!s.exists()) fail("이 코드의 방을 찾지 못했어요.");
+    lsSet("lg_session",{role:"teacher",code:d.code}); subscribeRoom(d.code); S.view="teacher";
+  }); },
+  setGroupCount(d){ run(async()=>{
+    const n=+d.n, cur=S.room.groupCount;
+    if(n<cur){ const busy=[]; for(let g=n+1; g<=cur; g++) if(playersIn("g"+g).length) busy.push(g); if(busy.length) fail(`${busy.join(", ")}모둠에 학생이 있어서 줄일 수 없어요.`); }
+    for(let g=cur+1; g<=n; g++) if(!S.groups["g"+g]) await S.db.ref(`rooms/${S.code}/groups/g${g}`).set(freshGroup());
+    await S.db.ref(`rooms/${S.code}/meta`).update({groupCount:n});
+  }); },
+  setRoomUnit(d){ run(async()=>{
+    const u=+d.u, arr=S.room.units||[5,6]; const next = arr.includes(u)? arr.filter(x=>x!==u): [...arr,u].sort();
+    if(!next.length) fail("단원을 하나 이상 남겨 주세요.");
+    await S.db.ref(`rooms/${S.code}/meta`).update({units:next});
+  }); },
+  toggleReveal(){ S.reveal=!S.reveal; render(); },
+  resetGroup(d){ run(async()=>{ const G=S.groups[d.g]||{}; await gref(d.g).set({...freshGroup(),rounds:G.rounds||1,used:G.used||[]}); }); },
+  kick(d){ run(async()=>{ await pref(d.u).remove(); }); },
+  leaveTeacher(){ lsSet("lg_session",null); A.home(); },
+
+  joinRoom(){ run(async()=>{
+    const code=(document.getElementById("join-code").value||"").trim().toUpperCase();
+    const name=(document.getElementById("join-name").value||"").trim().slice(0,12);
+    if(code.length<5) fail("코드 5자리를 입력해 주세요.");
+    if(!name) fail("이름을 입력해 주세요.");
+    const s = await S.db.ref(`rooms/${code}/meta`).get(); if(!s.exists()) fail("이 코드의 방이 없어요. 선생님 화면의 코드를 다시 확인해 주세요.");
+    S.myName=name; lsSet("lg_session",{role:"student",code,name}); subscribeRoom(code); S.view="student";
+  }); },
+  pickGroup(d){ run(async()=>{
+    const g=d.g; const others = playersIn(g).filter(u=>u!==S.uid);
+    if(others.length>=MAX_PER_GROUP) fail("이 모둠은 가득 찼어요 (최대 10명).");
+    const me=S.players[S.uid];
+    await pref(S.uid).set({name:S.myName||(me&&me.name)||"학생",group:g,joinedAt:Date.now(),sv:null,vote:null});
+  }); },
+  changeGroup(){ run(async()=>{ await pref(S.uid).remove(); }); },
+  leaveRoom(){ run(async()=>{ try{ await pref(S.uid).remove(); }catch(e){} lsSet("lg_session",null); unsubAll(); S.view="home"; S.code=null; }); },
+  setRounds(d){ const g=S.players[S.uid].group; run(async()=>{ await gref(g).update({rounds:+d.n}); }); },
+  startGame(){ const g=S.players[S.uid].group; run(async()=>{
+    const G=S.groups[g]; const mem=playersIn(g);
+    if(mem.length<MIN_PLAYERS) fail(`3명 이상 모여야 시작할 수 있어요. (지금 ${mem.length}명)`);
+    if(mem.length>MAX_PER_GROUP) fail("한 모둠은 최대 10명이에요.");
+    const set=chooseSet(S.room.units||[5,6], G.used);
+    const order=shuffle(mem); const names={}; order.forEach(u=>names[u]=S.players[u].name);
+    await gref(g).update({phase:"solve",gameNo:(G.gameNo||0)+1,members:order,names,liar:pick(order),setId:set.id,turn:0,talk:[],
+      used:[...(G.used||[]),set.id].slice(-40),tally:null,accused:null,guess:null,result:null});
+  }); },
+  submitAns(){ const me=S.players[S.uid], g=me.group, G=S.groups[g]; run(async()=>{
+    const el=document.getElementById("ans-"+G.gameNo); const v=(el&&el.value||"").trim(); if(!v) fail("답을 입력해 주세요.");
+    const p=myProblem(G,S.uid); const sv=(me.sv&&me.sv.g===G.gameNo)?{...me.sv}:{g:G.gameNo,tries:0,done:false};
+    if(sameAns(v,p.a)){ sv.done=true; sv.ok=true; }
+    else { sv.tries=(sv.tries||0)+1; if(sv.tries>=3){ sv.done=true; sv.ok=false; } else toast(`다시 풀어 보세요. (남은 기회 ${3-sv.tries}번)`); }
+    await pref(S.uid).update({sv});
+  }); },
+  toTalk(){ const g=S.players[S.uid].group; run(async()=>{ await gref(g).update({phase:"talk",turn:0,talk:[]}); }); },
+  say(d){ const g=S.players[S.uid].group, G=S.groups[g]; run(async()=>{
+    let text;
+    if(d.mode==="voice") text="🗣 말로 설명했어요";
+    else if(d.mode==="skip") text="(차례를 넘겼어요)";
+    else {
+      const el=document.getElementById("say-"+G.gameNo+"-"+G.turn); text=(el&&el.value||"").trim();
+      if(!text) fail("설명을 한 문장 입력해 주세요.");
+      if(leaksAnswer(text, myProblem(G,S.uid).a)) fail("답을 그대로 말하면 안 돼요! 답의 특징을 설명해 보세요.");
+      text=text.slice(0,120);
+    }
+    const n=G.members.length, total=n*(G.rounds||1);
+    const speaker = G.members[G.turn % n];
+    const next=G.turn+1;
+    await gref(g).update({talk:[...(G.talk||[]),{u:speaker,t:text,r:Math.floor(G.turn/n)+1}],turn:next,phase: next>=total?"vote":"talk"});
+  }); },
+  vote(d){ const me=S.players[S.uid], G=S.groups[me.group]; run(async()=>{ await pref(S.uid).update({vote:{g:G.gameNo,to:d.u}}); }); },
+  countVotes(){ const g=S.players[S.uid].group; run(async()=>{
+    const G=S.groups[g]; const voters=present(G,g); const tally={};
+    G.members.forEach(u=>tally[u]=0);
+    voters.forEach(u=>{ const v=S.players[u].vote; if(v&&v.g===G.gameNo&&tally[v.to]!=null) tally[v.to]++; });
+    const max=Math.max(...Object.values(tally)); const tops=Object.keys(tally).filter(u=>tally[u]===max);
+    if(tops.length===1 && tops[0]===G.liar) await gref(g).update({phase:"guess",tally,accused:tops[0]});
+    else await gref(g).update({phase:"result",tally,accused:tops.length===1?tops[0]:null,result:tops.length===1?"wrong":"tie"});
+  }); },
+  liarGuess(){ const g=S.players[S.uid].group, G=S.groups[g]; run(async()=>{
+    const el=document.getElementById("guess-"+G.gameNo); const v=(el&&el.value||"").trim(); if(!v) fail("다른 사람들의 답을 입력해 주세요.");
+    const ok=sameAns(v, SET_BY_ID[G.setId].c.a);
+    await gref(g).update({phase:"result",guess:v.slice(0,20),result: ok?"guessed":"caught"});
+  }); },
+  liarGiveUp(){ const g=S.players[S.uid].group; run(async()=>{ await gref(g).update({phase:"result",guess:"(포기)",result:"caught"}); }); },
+  toLobby(){ const g=S.players[S.uid].group, G=S.groups[g]; run(async()=>{ await gref(g).set({...freshGroup(),rounds:G.rounds||1,used:G.used||[],gameNo:G.gameNo||0}); }); },
+};
+
+function myProblem(G,u){ const s=SET_BY_ID[G.setId]; return u===G.liar? s.l : s.c; }
+
+/* ===================== 렌더 ===================== */
+function render(){
+  const app=document.getElementById("app");
+  const act=document.activeElement, aid=act&&act.id; let sel=null;
+  try{ if(aid && act.selectionStart!=null) sel=[act.selectionStart,act.selectionEnd]; }catch(e){}
+  const vals={}; app.querySelectorAll("input[id],textarea[id]").forEach(el=>{ if(el.type==="text"||el.tagName==="TEXTAREA") vals[el.id]=el.value; });
+  app.innerHTML = view();
+  for(const id in vals){ const el=document.getElementById(id); if(el && !el.hasAttribute('data-nr')) el.value=vals[id]; }
+  if(aid){ const el=document.getElementById(aid); if(el){ el.focus({preventScroll:true}); if(sel) try{el.setSelectionRange(sel[0],sel[1]);}catch(e){} } }
+}
+function view(){
+  switch(S.view){
+    case "teacherSetup": return vTeacherSetup();
+    case "teacher": return vTeacher();
+    case "join": return vJoin();
+    case "student": return vStudent();
+    case "local": return vLocal();
+    default: return vHome();
+  }
+}
+const RULES = `
+<ol class="rules">
+  <li>주어진 문제를 해결하여 답을 구합니다. <span class="muted small">(한 명만 답이 다른 문제를 받지만, 본인은 그 사실을 몰라요!)</span></li>
+  <li>순서를 정해 돌아가면서 자신이 받은 문제의 답에 대한 설명을 1문장씩 합니다.</li>
+  <li>1~2바퀴를 돌고 모둠에서 누가 라이어인지 지목합니다.</li>
+  <li>라이어로 가장 많이 지목받은 사람이 라이어가 아니라면 라이어의 승리!</li>
+  <li>가장 많이 지목받은 사람이 라이어가 맞다면 라이어는 다른 사람들의 답(제시어)을 맞힙니다.
+    <ol><li>맞히면 라이어의 승리</li><li>맞히지 못하면 라이어의 패배</li></ol></li>
+</ol>
+<p class="muted small">최다 득표가 동점이면 라이어를 찾지 못한 것으로 보고 라이어가 이겨요.</p>`;
+
+function vHome(){
+  const online = S.dbState==="ready";
+  return `<div class="wrap">
+  <div class="card hero">
+    <span class="tag">중학교 2학년 수학 · 5~6단원</span>
+    <h1>바보<br>라이어게임</h1>
+    <p class="muted">모두 같은 답이 나오는 문제를 받지만, 단 한 명만 답이 다른 문제를 받아요. 문제를 풀고, 답을 한 문장씩 설명하며 라이어를 찾아내세요.</p>
+  </div>
+  ${S.dbState==="loading"?`<div class="notice">온라인 방에 연결하는 중이에요…</div>`:""}
+  ${S.dbState==="none"?`<div class="notice bad"><b>온라인 방에 연결하지 못했어요.</b> 인터넷 연결을 확인하고 새로고침해 주세요. 아래 <b>한 기기로 하기</b>는 연결 없이도 쓸 수 있어요.</div>`:""}
+  ${S.dbState==="authfail"?`<div class="notice bad"><b>익명 로그인이 꺼져 있어요.</b> (선생님께) Firebase 콘솔 → Authentication → 로그인 방법에서 <b>익명</b>을 사용 설정해 주세요.</div>`:""}
+  ${S.dbState==="noconfig"?`<div class="notice bad"><b>아직 Firebase 설정 전이에요.</b> (선생님께) 이 파일 안의 <code>FIREBASE_CONFIG</code>를 내 Firebase 프로젝트 값으로 바꿔 주세요. 설정 전에도 <b>한 기기로 하기</b>는 쓸 수 있어요.</div>`:""}
+  <div class="big-choice">
+    <button class="btn primary" data-act="goTeacherSetup" ${online?"":"disabled"}>교사: 방 만들기<span>코드 생성 · 모둠 1~6개</span></button>
+    <button class="btn accent" data-act="goJoin" ${online?"":"disabled"}>학생: 코드로 입장<span>모둠 고르고 참여 · 최대 10명</span></button>
+  </div>
+  <button class="btn ghost" data-act="goLocal">한 기기로 돌려 가며 하기 (태블릿 1대)</button>
+  <div class="card"><h3>게임 규칙</h3>${RULES}</div>
+  </div>`;
+}
+
+function vTeacherSetup(){
+  const last=lsGet("lg_session");
+  return `<div class="wrap">
+  <div class="topbar"><button class="btn ghost sm" data-act="home">← 처음으로</button></div>
+  <div class="card">
+    <span class="eyebrow">교사용</span><h2>새 방 만들기</h2>
+    <div class="stack"><h3>모둠 수</h3>
+      <div class="chips">${[1,2,3,4,5,6].map(n=>`<button class="chip ${S.tset.groups===n?"on":""}" data-act="setTG" data-n="${n}">${n}모둠</button>`).join("")}</div>
+      <p class="muted small">한 모둠에 3~10명이 들어갈 수 있어요.</p></div>
+    <div class="stack"><h3>출제 범위</h3>
+      <div class="chips">
+        <button class="chip ${S.tset.units.includes(5)?"on":""}" data-act="toggleUnit" data-u="5">Ⅴ. 도형의 닮음과 피타고라스 정리</button>
+        <button class="chip ${S.tset.units.includes(6)?"on":""}" data-act="toggleUnit" data-u="6">Ⅵ. 확률</button>
+      </div></div>
+    <button class="btn primary block" data-act="createRoom" ${S.busy?"disabled":""}>코드 만들기</button>
+  </div>
+  </div>`;
+}
+
+function phasePill(G){
+  const p=G.phase||"lobby";
+  const cls = p==="result"? (["caught"].includes(G.result)?"ok":"liar") : p==="lobby"?"wait":"";
+  let label=PHASE_LABEL[p];
+  if(p==="result") label = G.result==="caught"?"시민 승리":"라이어 승리";
+  return `<span class="pill ${cls}">${label}</span>`;
+}
+
+function vTeacher(){
+  if(!S.loaded.room) return `<div class="wrap"><div class="notice">방 정보를 불러오는 중…</div></div>`;
+  if(!S.room) return `<div class="wrap"><div class="notice bad">방을 찾을 수 없어요.</div><button class="btn" data-act="leaveTeacher">처음으로</button></div>`;
+  const R=S.room, units=R.units||[5,6];
+  const cards=[]; for(let i=1;i<=R.groupCount;i++){ const g="g"+i; const G=S.groups[g]||freshGroup(); cards.push(vTeacherGroup(g,i,G)); }
+  const total=Object.values(S.players).length;
+  return `<div class="wrap wide">
+  <div class="topbar"><button class="btn ghost sm" data-act="leaveTeacher">← 교사 화면 나가기</button><span class="who">교사 화면 · 학생 ${total}명 접속</span></div>
+  <div class="card">
+    <div class="row between" style="align-items:flex-end">
+      <div class="stack" style="gap:4px"><span class="eyebrow">입장 코드</span><div class="code-big">${esc(R.code)}</div>
+      <p class="muted small">학생들은 이 페이지에서 <b>학생: 코드로 입장</b>을 누르고 코드를 입력해요.</p></div>
+      <div class="stack" style="gap:8px">
+        <div class="chips">${[1,2,3,4,5,6].map(n=>`<button class="chip ${R.groupCount===n?"on":""}" data-act="setGroupCount" data-n="${n}">${n}</button>`).join("")}</div>
+        <div class="chips">
+          <button class="chip ${units.includes(5)?"on":""}" data-act="setRoomUnit" data-u="5">5단원</button>
+          <button class="chip ${units.includes(6)?"on":""}" data-act="setRoomUnit" data-u="6">6단원</button>
+          <button class="chip ${S.reveal?"on":""}" data-act="toggleReveal">${S.reveal?"라이어 숨기기":"라이어 보기"}</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="grid-groups">${cards.join("")}</div>
+  </div>`;
+}
+function vTeacherGroup(g,i,G){
+  const inG=playersIn(g); const ph=G.phase||"lobby"; const set=SET_BY_ID[G.setId];
+  const inGame = ph!=="lobby" ? G.members||[] : [];
+  const rows = (ph==="lobby"?inG:[...inGame, ...inG.filter(u=>!inGame.includes(u))]).map(u=>{
+    const p=S.players[u]; const gone=!p||p.group!==g; let st="";
+    if(ph!=="lobby" && !inGame.includes(u)) st=`<span class="pill wait">관전</span>`;
+    else if(ph==="solve") st = (p&&p.sv&&p.sv.g===G.gameNo&&p.sv.done)?`<span class="pill ok">풀이 완료</span>`:`<span class="pill wait">푸는 중</span>`;
+    else if(ph==="vote") st = (p&&p.vote&&p.vote.g===G.gameNo)?`<span class="pill ok">지목함</span>`:`<span class="pill wait">고민 중</span>`;
+    const isLiar = ph!=="lobby" && u===G.liar && (S.reveal||ph==="result"||ph==="guess");
+    const turn = ph==="talk" && G.members[G.turn%G.members.length]===u;
+    return `<li class="${turn?"turn":""}"><span>${esc(nameOf(G,u))}${gone?' <span class="muted small">(나감)</span>':""} ${isLiar?'<span class="pill liar">라이어</span>':""}</span><span class="row" style="gap:4px">${st}${p&&!gone?`<button class="x" title="내보내기" aria-label="${esc(p.name)} 내보내기" data-act="kick" data-u="${esc(u)}">✕</button>`:""}</span></li>`;
+  }).join("");
+  return `<div class="card">
+    <div class="row between"><h3>${i}모둠</h3>${phasePill(G)}</div>
+    <p class="muted small">${inG.length}/${MAX_PER_GROUP}명 · ${G.gameNo||0}번째 판${ph==="talk"?` · 설명 ${G.turn}/${G.members.length*(G.rounds||1)}`:""}</p>
+    ${rows?`<ul class="members">${rows}</ul>`:`<p class="muted small">아직 아무도 없어요.</p>`}
+    ${set && ph!=="lobby" && (S.reveal||ph==="result")?`<p class="small"><b>${esc(set.t)}</b><br>시민 답 ${esc(fmtAns(set.c))} · 라이어 답 ${esc(fmtAns(set.l))}</p>`:""}
+    ${ph!=="lobby"?`<button class="btn ghost sm" data-act="resetGroup" data-g="${g}">대기실로 되돌리기</button>`:""}
+  </div>`;
+}
+
+function vJoin(){
+  return `<div class="wrap">
+  <div class="topbar"><button class="btn ghost sm" data-act="home">← 처음으로</button></div>
+  <div class="card">
+    <span class="eyebrow">학생용</span><h2>코드로 입장하기</h2>
+    <label class="f">입장 코드<input type="text" id="join-code" class="code-in" maxlength="5" autocomplete="off" placeholder="ABCDE" data-enter="joinRoom"></label>
+    <label class="f">이름<input type="text" id="join-name" maxlength="12" autocomplete="off" placeholder="예: 김민준" value="${esc(S.myName)}" data-enter="joinRoom"></label>
+    <button class="btn primary block" data-act="joinRoom" ${S.busy?"disabled":""}>입장하기</button>
+  </div></div>`;
+}
+
+function vStudent(){
+  if(!S.loaded.room||!S.loaded.groups||!S.loaded.players) return `<div class="wrap"><div class="notice">방에 들어가는 중…</div></div>`;
+  if(!S.room) return `<div class="wrap"><div class="notice bad">방이 없어졌어요.</div><button class="btn" data-act="leaveRoom">처음으로</button></div>`;
+  const me=S.players[S.uid];
+  if(!me) return vPickGroup();
+  const g=me.group, G=S.groups[g]; const gi=g.slice(1);
+  const top=`<div class="topbar"><span class="who">코드 <b class="mono">${esc(S.room.code)}</b> · <b>${gi}모둠</b> · ${esc(me.name)}</span><button class="btn ghost sm" data-act="leaveRoom">나가기</button></div>`;
+  if(!G) return `<div class="wrap">${top}<div class="notice">모둠 정보를 불러오는 중…</div></div>`;
+  const ph=G.phase||"lobby";
+  const inGame=(G.members||[]).includes(S.uid);
+  const steps=`<div class="steps">${["solve","talk","vote","guess","result"].map(p=>`<span class="${p===ph?"on":""}">${PHASE_LABEL[p]}</span>`).join("")}</div>`;
+  let body;
+  if(ph==="lobby") body=vLobby(g,G);
+  else if(!inGame && ph!=="result") body=`<div class="card"><h2>게임이 진행 중이에요</h2><p>지금 판이 끝나면 다음 판부터 함께할 수 있어요. 현재 단계: <b>${PHASE_LABEL[ph]}</b></p>${G.talk&&G.talk.length?vLog(G):""}</div>`;
+  else if(ph==="solve") body=vSolve(g,G,me);
+  else if(ph==="talk") body=vTalk(g,G);
+  else if(ph==="vote") body=vVote(g,G,me);
+  else if(ph==="guess") body=vGuess(g,G);
+  else body=vResult(g,G);
+  return `<div class="wrap">${top}${ph!=="lobby"?steps:""}${body}</div>`;
+}
+
+function vPickGroup(){
+  const n=S.room.groupCount;
+  const btns=[]; for(let i=1;i<=n;i++){ const g="g"+i; const c=playersIn(g).length; const G=S.groups[g]||{};
+    btns.push(`<button class="btn ${c>=MAX_PER_GROUP?"":"ghost"}" data-act="pickGroup" data-g="${g}" ${c>=MAX_PER_GROUP||S.busy?"disabled":""} style="flex-direction:column;min-height:84px"><span style="font-size:1.15rem">${i}모둠</span><span class="small muted">${c}/${MAX_PER_GROUP}명${G.phase&&G.phase!=="lobby"?" · 진행 중":""}</span></button>`); }
+  return `<div class="wrap">
+  <div class="topbar"><span class="who">코드 <b class="mono">${esc(S.room.code)}</b> · ${esc(S.myName)}</span><button class="btn ghost sm" data-act="leaveRoom">나가기</button></div>
+  <div class="card"><h2>모둠을 골라 주세요</h2><div class="names-grid">${btns.join("")}</div></div></div>`;
+}
+
+function vLobby(g,G){
+  const mem=playersIn(g);
+  return `<div class="card">
+    <span class="eyebrow">대기실</span><h2>${g.slice(1)}모둠 모이는 중</h2>
+    <ul class="members">${mem.map(u=>`<li class="${u===S.uid?"me":""}"><span>${esc(S.players[u].name)}${u===S.uid?' <span class="muted small">(나)</span>':""}</span></li>`).join("")}</ul>
+    <p class="muted small">${mem.length}/${MAX_PER_GROUP}명 · 3명 이상이면 시작할 수 있어요.</p>
+    <div class="stack"><h3>설명 바퀴 수</h3><div class="chips">${[1,2].map(n=>`<button class="chip ${(G.rounds||1)===n?"on":""}" data-act="setRounds" data-n="${n}">${n}바퀴</button>`).join("")}</div></div>
+    <button class="btn primary block" data-act="startGame" ${mem.length<MIN_PLAYERS||S.busy?"disabled":""}>게임 시작</button>
+    <button class="btn ghost sm" data-act="changeGroup">다른 모둠으로 옮기기</button>
+  </div>
+  <details class="card"><summary>게임 규칙 보기</summary>${RULES}</details>`;
+}
+
+function vProblem(G,u,extra=""){
+  const set=SET_BY_ID[G.setId]; const p=myProblem(G,u);
+  return `<div class="problem"><span class="topic">${esc(set.t)}</span><div class="q">${esc(p.q)}</div>${extra}</div>`;
+}
+
+function vSolve(g,G,me){
+  const sv = me.sv && me.sv.g===G.gameNo ? me.sv : null;
+  const p=myProblem(G,S.uid);
+  let extra;
+  if(sv && sv.done) extra = `<div class="row"><span class="muted small">${sv.ok?"정답!":"기회를 다 썼어요. 정답은"}</span><span class="answer-chip">${esc(fmtAns(p))}</span></div><p class="small muted">이 답의 특징을 어떻게 설명할지 생각해 두세요. 답을 그대로 말하면 안 돼요.</p>`;
+  else extra = `<div class="ans-row"><input type="text" id="ans-${G.gameNo}" inputmode="decimal" autocomplete="off" placeholder="답 (분수는 3/8처럼)" data-enter="submitAns"><button class="btn primary" data-act="submitAns" ${S.busy?"disabled":""}>확인</button></div>${sv&&sv.tries?`<p class="small muted">틀린 횟수 ${sv.tries}/3</p>`:""}`;
+  const pres=present(G,g);
+  const done=pres.filter(u=>{const s=S.players[u].sv; return s&&s.g===G.gameNo&&s.done;});
+  const all = done.length===pres.length;
+  return `<h2>문제를 풀어 답을 구하세요</h2>
+  ${vProblem(G,S.uid,extra)}
+  <div class="card"><div class="row between"><h3>모둠 진행 상황</h3><span class="pill ${all?"ok":"wait"}">${done.length}/${pres.length}명 완료</span></div>
+  <p class="small muted">설명 순서: ${G.members.map((u,i)=>`${i+1}. ${esc(nameOf(G,u))}`).join(" → ")}</p>
+  <button class="btn primary block" data-act="toTalk" ${!all||S.busy?"disabled":""}>${all?"설명 시작하기":"모두 풀 때까지 기다려요"}</button></div>`;
+}
+
+function vLog(G){
+  if(!G.talk||!G.talk.length) return `<p class="muted small">아직 설명이 없어요.</p>`;
+  return `<ul class="log">${G.talk.map(e=>`<li><span class="who">${esc(nameOf(G,e.u))}<br><span class="rd">${e.r}바퀴</span></span><span class="txt">${esc(e.t)}</span></li>`).join("")}</ul>`;
+}
+
+function vTalk(g,G){
+  const n=G.members.length, total=n*(G.rounds||1); const speaker=G.members[G.turn%n];
+  const mine = speaker===S.uid; const spGone = !S.players[speaker] || S.players[speaker].group!==g;
+  const p=myProblem(G,S.uid);
+  const myAnsLine = `<p class="small">내 답: <span class="answer-chip" style="font-size:1rem">${esc(fmtAns(p))}</span></p>`;
+  return `<details class="card"><summary>내 문제 다시 보기</summary>${vProblem(G,S.uid,myAnsLine)}</details>
+  <div class="card">
+    <div class="row between"><h2>${mine?"내 차례예요!":`${esc(nameOf(G,speaker))}의 차례`}</h2><span class="pill">${Math.min(G.turn+1,total)}/${total}</span></div>
+    ${mine?`<p class="muted small">내 답을 직접 말하지 말고, 답의 특징을 한 문장으로 설명해요. 예) "10보다 크고 20보다 작아요", "분모가 짝수예요"</p>
+      <textarea id="say-${G.gameNo}-${G.turn}" rows="2" maxlength="120" placeholder="한 문장으로 설명하기"></textarea>
+      <div class="row"><button class="btn primary" data-act="say" ${S.busy?"disabled":""}>설명 올리기</button><button class="btn ghost" data-act="say" data-mode="voice" ${S.busy?"disabled":""}>말로 설명했어요</button></div>`
+      : `<p class="muted">${esc(nameOf(G,speaker))}의 설명을 잘 듣고, 내 답과 맞는지 생각해 보세요.</p>${spGone?`<button class="btn ghost sm" data-act="say" data-mode="skip">나간 학생 차례 넘기기</button>`:""}`}
+  </div>
+  <div class="card"><h3>지금까지의 설명</h3>${vLog(G)}</div>`;
+}
+
+function vVote(g,G,me){
+  const pres=present(G,g); const myVote = me.vote&&me.vote.g===G.gameNo ? me.vote.to : null;
+  const voted=pres.filter(u=>{const v=S.players[u].vote; return v&&v.g===G.gameNo;});
+  const all=voted.length===pres.length;
+  return `<div class="card">
+    <span class="eyebrow">라이어 지목</span><h2>누가 라이어일까?</h2>
+    <p class="muted small">한 명을 골라요. 개표 전까지는 바꿀 수 있어요.</p>
+    <div class="vote-grid">${G.members.filter(u=>u!==S.uid).map(u=>`<button class="btn ${myVote===u?"on":""}" data-act="vote" data-u="${esc(u)}" ${S.busy?"disabled":""}>${esc(nameOf(G,u))}</button>`).join("")}</div>
+    <div class="row between"><span class="pill ${all?"ok":"wait"}">${voted.length}/${pres.length}명 지목 완료</span></div>
+    <button class="btn accent block" data-act="countVotes" ${!all||S.busy?"disabled":""}>${all?"개표하기":"모두 지목할 때까지 기다려요"}</button>
+  </div>
+  <div class="card"><h3>설명 기록</h3>${vLog(G)}</div>`;
+}
+
+function vTally(G){
+  const max=Math.max(1,...Object.values(G.tally||{}));
+  return `<div class="tally">${G.members.map(u=>{const c=(G.tally||{})[u]||0; return `<div class="bar"><span>${esc(nameOf(G,u))}</span><div class="track"><div class="fill ${u===G.liar?"l":""}" style="width:${c/max*100}%"></div></div><span class="n">${c}</span></div>`;}).join("")}</div>`;
+}
+
+function vGuess(g,G){
+  const isLiar = S.uid===G.liar;
+  if(isLiar) return `<div class="banner liar"><span class="big">들켰어요! 당신이 라이어였어요</span><p>당신의 문제만 답이 달랐어요. 다른 사람들의 설명을 떠올려서, 그들이 구한 답을 맞혀 보세요. 맞히면 역전승!</p></div>
+    <div class="card"><h3>다른 사람들의 답은?</h3>
+    <div class="ans-row"><input type="text" id="guess-${G.gameNo}" inputmode="decimal" autocomplete="off" placeholder="숫자 또는 분수" data-enter="liarGuess"><button class="btn primary" data-act="liarGuess" ${S.busy?"disabled":""}>제출</button></div>
+    <button class="btn ghost sm" data-act="liarGiveUp">모르겠어요 (포기)</button></div>
+    <div class="card"><h3>설명 기록</h3>${vLog(G)}</div>`;
+  return `<div class="banner cit"><span class="big">${esc(josa(nameOf(G,G.liar),'이','가'))} 라이어였어요!</span><p>라이어가 여러분의 답을 맞히는 중이에요. 맞히면 라이어가 이겨요.</p></div>
+  <div class="card"><h3>지목 결과</h3>${vTally(G)}</div>`;
+}
+
+function resultText(G){
+  const Ln=nameOf(G,G.liar), An=G.accused?nameOf(G,G.accused):""; const L=esc(Ln);
+  switch(G.result){
+    case "wrong": return {cls:"liar",head:"라이어 승리!",sub:`가장 많이 지목받은 ${esc(josa(An,'은','는'))} 라이어가 아니었어요. 진짜 라이어는 ${L}!`};
+    case "tie": return {cls:"liar",head:"라이어 승리!",sub:`표가 갈려 라이어를 찾지 못했어요. 진짜 라이어는 ${L}!`};
+    case "guessed": return {cls:"liar",head:"라이어 역전승!",sub:`${esc(josa(Ln,'이','가'))} 라이어로 지목됐지만 다른 사람들의 답 "${esc(G.guess)}"를 맞혔어요.`};
+    default: return {cls:"cit",head:"라이어 패배!",sub:`${esc(josa(Ln,'을','를'))} 찾아냈고, 라이어는 답을 맞히지 못했어요${G.guess&&G.guess!=="(포기)"?` (제출: "${esc(G.guess)}")`:""}.`};
+  }
+}
+function vResult(g,G){
+  const r=resultText(G); const set=SET_BY_ID[G.setId];
+  const mem=playersIn(g);
+  return `<div class="banner ${r.cls}"><span class="big">${r.head}</span><p>${r.sub}</p></div>
+  <div class="card"><h3>두 문제 비교 · ${esc(set.t)}</h3>
+    <div class="cmp"><div><span class="pill">다른 사람들의 문제</span><p>${esc(set.c.q)}</p><p>답 <span class="answer-chip" style="font-size:1rem">${esc(fmtAns(set.c))}</span></p></div>
+    <div class="l"><span class="pill liar">라이어의 문제</span><p>${esc(set.l.q)}</p><p>답 <span class="answer-chip" style="font-size:1rem">${esc(fmtAns(set.l))}</span></p></div></div></div>
+  <div class="card"><h3>지목 결과</h3>${vTally(G)}</div>
+  <div class="card"><h3>설명 기록</h3>${vLog(G)}</div>
+  <div class="card"><div class="stack"><h3>한 판 더?</h3><p class="muted small">지금 모둠에 ${mem.length}명이 있어요. 새 문제와 새 라이어로 시작해요.</p>
+    <div class="chips">${[1,2].map(n=>`<button class="chip ${(G.rounds||1)===n?"on":""}" data-act="setRounds" data-n="${n}">${n}바퀴</button>`).join("")}</div>
+    <div class="row"><button class="btn primary" data-act="startGame" ${mem.length<MIN_PLAYERS||S.busy?"disabled":""}>바로 다음 판 시작</button><button class="btn ghost" data-act="toLobby">대기실로</button></div></div></div>`;
+}
+
+/* ===================== 한 기기 모드 ===================== */
+const LA = {
+  lName(){},
+  lAdd(){ const L=S.local; syncNames(); if(L.names.length<10) L.names.push(""); render(); },
+  lDel(d){ const L=S.local; syncNames(); if(L.names.length>3) L.names.splice(+d.i,1); render(); },
+  lRounds(d){ syncNames(); S.local.rounds=+d.n; render(); },
+  lUnit(d){ syncNames(); const L=S.local,u=+d.u; L.units = L.units.includes(u)? L.units.filter(x=>x!==u) : [...L.units,u].sort(); render(); },
+  lStart(){ const L=S.local; syncNames(); const names=L.names.map(s=>s.trim()).filter(Boolean);
+    if(names.length<3) return toast("3명 이상 이름을 입력해 주세요.");
+    if(new Set(names).size!==names.length) return toast("같은 이름이 있어요. 구분되게 바꿔 주세요.");
+    if(!L.units.length) return toast("단원을 하나 이상 골라 주세요.");
+    L.names=names; newLocalGame(); render(); },
+  lOpen(d){ S.local.viewing=+d.i; S.local.tries=0; S.local.solved=false; render(); },
+  lCheck(){ const L=S.local; const el=document.getElementById("lans-"+L.game+"-"+L.viewing); const v=(el&&el.value||"").trim(); if(!v) return toast("답을 입력해 주세요.");
+    const p=lProblem(L.viewing); if(sameAns(v,p.a)){ L.solved=true; L.ok=true; } else { L.tries++; if(L.tries>=3){L.solved=true;L.ok=false;} else toast(`다시 풀어 보세요. (남은 기회 ${3-L.tries}번)`);} render(); },
+  lClose(){ const L=S.local; L.seen[L.viewing]=true; L.viewing=null; render(); },
+  lToTalk(){ S.local.phase="talk"; S.local.turn=0; render(); },
+  lNext(){ const L=S.local; L.turn++; if(L.turn>=L.order.length*L.rounds){ L.phase="vote"; L.votes={}; L.voter=null; } render(); },
+  lVoter(d){ S.local.voter=+d.i; render(); },
+  lVote(d){ const L=S.local; L.votes[L.voter]=+d.t; L.voter=null; render(); },
+  lCount(){ const L=S.local; const t={}; L.order.forEach(i=>t[i]=0); Object.values(L.votes).forEach(v=>t[v]++);
+    const max=Math.max(...Object.values(t)); const tops=Object.keys(t).filter(k=>t[k]===max).map(Number);
+    L.tally=t; if(tops.length===1&&tops[0]===L.liar){ L.phase="guess"; L.accused=tops[0]; } else { L.phase="result"; L.accused=tops.length===1?tops[0]:null; L.result=tops.length===1?"wrong":"tie"; } render(); },
+  lGuess(){ const L=S.local; const el=document.getElementById("lguess-"+L.game); const v=(el&&el.value||"").trim(); if(!v) return toast("답을 입력해 주세요.");
+    L.guess=v; L.result = sameAns(v,SET_BY_ID[L.setId].c.a)?"guessed":"caught"; L.phase="result"; render(); },
+  lGiveUp(){ const L=S.local; L.guess="(포기)"; L.result="caught"; L.phase="result"; render(); },
+  lAgain(){ newLocalGame(); render(); },
+  lSetup(){ S.local.phase="setup"; render(); },
+};
+Object.assign(A,LA);
+function syncNames(){ const L=S.local; if(L.phase!=="setup") return; L.names=L.names.map((v,i)=>{const el=document.getElementById("lname-"+i); return el?el.value:v;}); }
+function newLocalGame(){ const L=S.local; const set=chooseSet(L.units,L.used); L.used=[...L.used,set.id].slice(-40);
+  Object.assign(L,{phase:"deal",game:(L.game||0)+1,setId:set.id,order:shuffle(L.names.map((_,i)=>i)),liar:Math.floor(Math.random()*L.names.length),seen:{},viewing:null,turn:0,votes:{},voter:null,tally:null,accused:null,guess:null,result:null}); }
+function lProblem(i){ const L=S.local, s=SET_BY_ID[L.setId]; return i===L.liar? s.l : s.c; }
+function lGameView(){ // adapter so result text helpers work
+  const L=S.local; return {members:L.order.map(String),names:Object.fromEntries(L.names.map((n,i)=>[String(i),n])),liar:String(L.liar),accused:L.accused==null?null:String(L.accused),
+    tally:L.tally?Object.fromEntries(Object.entries(L.tally).map(([k,v])=>[String(k),v])):null,guess:L.guess,result:L.result,setId:L.setId,talk:[]}; }
+
+function vLocal(){
+  const L=S.local;
+  const top=`<div class="topbar"><button class="btn ghost sm" data-act="home">← 처음으로</button><span class="who">한 기기 모드${L.game?` · ${L.game}번째 판`:""}</span></div>`;
+  const steps= L.phase!=="setup"?`<div class="steps">${[["deal","문제 풀기"],["talk","설명하기"],["vote","라이어 지목"],["guess","라이어의 정답 맞히기"],["result","결과"]].map(([p,l])=>`<span class="${p===L.phase?"on":""}">${l}</span>`).join("")}</div>`:"";
+  let body="";
+  if(L.phase==="setup"){
+    body=`<div class="card"><span class="eyebrow">한 기기 모드</span><h2>참가자 이름 (3~10명)</h2>
+      <p class="muted small">태블릿이나 휴대폰 한 대를 돌려 가며 해요. 문제와 지목은 다른 사람이 보지 않게 혼자 확인해요.</p>
+      <div class="stack">${L.names.map((n,i)=>`<div class="ans-row"><input type="text" id="lname-${i}" data-nr maxlength="12" autocomplete="off" placeholder="${i+1}번 이름" value="${esc(n)}">${L.names.length>3?`<button class="btn ghost sm" data-act="lDel" data-i="${i}" aria-label="삭제">✕</button>`:""}</div>`).join("")}</div>
+      ${L.names.length<10?`<button class="btn ghost sm" data-act="lAdd">+ 사람 추가</button>`:""}
+      <div class="stack"><h3>설명 바퀴 수</h3><div class="chips">${[1,2].map(n=>`<button class="chip ${L.rounds===n?"on":""}" data-act="lRounds" data-n="${n}">${n}바퀴</button>`).join("")}</div></div>
+      <div class="stack"><h3>출제 범위</h3><div class="chips"><button class="chip ${L.units.includes(5)?"on":""}" data-act="lUnit" data-u="5">5단원</button><button class="chip ${L.units.includes(6)?"on":""}" data-act="lUnit" data-u="6">6단원</button></div></div>
+      <button class="btn primary block" data-act="lStart">게임 시작</button></div>`;
+  } else if(L.phase==="deal"){
+    if(L.viewing!=null){
+      const p=lProblem(L.viewing); const set=SET_BY_ID[L.setId];
+      const extra = L.solved? `<div class="row"><span class="muted small">${L.ok?"정답!":"기회를 다 썼어요. 정답은"}</span><span class="answer-chip">${esc(fmtAns(p))}</span></div><button class="btn primary block" data-act="lClose">확인했어요 · 화면 가리고 다음 사람에게</button>`
+        : `<div class="ans-row"><input type="text" id="lans-${L.game}-${L.viewing}" inputmode="decimal" autocomplete="off" placeholder="답 (분수는 3/8처럼)" data-enter="lCheck"><button class="btn primary" data-act="lCheck">확인</button></div>${L.tries?`<p class="small muted">틀린 횟수 ${L.tries}/3</p>`:""}`;
+      body=`<h2>${esc(L.names[L.viewing])}의 문제</h2><div class="problem"><span class="topic">${esc(set.t)}</span><div class="q">${esc(p.q)}</div>${extra}</div>`;
+    } else {
+      const all=L.names.every((_,i)=>L.seen[i]);
+      body=`<div class="card"><h2>자기 이름을 눌러 문제를 확인하세요</h2>
+        <div class="names-grid">${L.names.map((n,i)=>`<button class="btn ${L.seen[i]?"done":""}" data-act="lOpen" data-i="${i}" ${L.seen[i]?"disabled":""}>${esc(n)}${L.seen[i]?" ✓":""}</button>`).join("")}</div>
+        <p class="small muted">설명 순서: ${L.order.map((i,k)=>`${k+1}. ${esc(L.names[i])}`).join(" → ")}</p>
+        <button class="btn primary block" data-act="lToTalk" ${all?"":"disabled"}>${all?"설명 시작하기":"모두 확인할 때까지 기다려요"}</button></div>`;
+    }
+  } else if(L.phase==="talk"){
+    const n=L.order.length,total=n*L.rounds; const sp=L.order[L.turn%n];
+    body=`<div class="card"><div class="row between"><h2>${esc(L.names[sp])}의 차례</h2><span class="pill">${L.turn+1}/${total} · ${Math.floor(L.turn/n)+1}바퀴</span></div>
+      <p class="muted">자기가 구한 답의 특징을 한 문장으로 말해요. 답을 그대로 말하면 안 돼요!</p>
+      <button class="btn primary block" data-act="lNext">${L.turn+1>=total?"설명 끝 · 라이어 지목하기":"다음 사람"}</button>
+      <ul class="members">${L.order.map((i,k)=>`<li class="${i===sp?"turn":""}"><span>${k+1}. ${esc(L.names[i])}</span></li>`).join("")}</ul></div>`;
+  } else if(L.phase==="vote"){
+    if(L.voter!=null){
+      body=`<div class="card"><h2>${esc(L.names[L.voter])}, 라이어는 누구?</h2><p class="muted small">다른 사람이 보지 않게 골라요.</p>
+        <div class="vote-grid">${L.order.filter(i=>i!==L.voter).map(i=>`<button class="btn" data-act="lVote" data-t="${i}">${esc(L.names[i])}</button>`).join("")}</div></div>`;
+    } else {
+      const done=Object.keys(L.votes).length, all=done===L.names.length;
+      body=`<div class="card"><h2>한 명씩 자기 이름을 누르고 몰래 지목해요</h2>
+        <div class="names-grid">${L.names.map((n,i)=>`<button class="btn ${L.votes[i]!=null?"done":""}" data-act="lVoter" data-i="${i}" ${L.votes[i]!=null?"disabled":""}>${esc(n)}${L.votes[i]!=null?" ✓":""}</button>`).join("")}</div>
+        <button class="btn accent block" data-act="lCount" ${all?"":"disabled"}>${all?"개표하기":`${done}/${L.names.length}명 지목 완료`}</button></div>`;
+    }
+  } else if(L.phase==="guess"){
+    const G=lGameView();
+    body=`<div class="banner liar"><span class="big">${esc(josa(L.names[L.liar],'이','가'))} 라이어였어요!</span><p>${esc(L.names[L.liar])}의 문제만 답이 달랐어요. 이제 라이어가 다른 사람들의 답을 맞혀요. 맞히면 라이어가 이겨요.</p></div>
+      <div class="card"><h3>지목 결과</h3>${vTally(G)}</div>
+      <div class="card"><h3>${esc(L.names[L.liar])}: 다른 사람들의 답은?</h3><div class="ans-row"><input type="text" id="lguess-${L.game}" inputmode="decimal" autocomplete="off" placeholder="숫자 또는 분수" data-enter="lGuess"><button class="btn primary" data-act="lGuess">제출</button></div><button class="btn ghost sm" data-act="lGiveUp">모르겠어요 (포기)</button></div>`;
+  } else {
+    const G=lGameView(); const r=resultText(G); const set=SET_BY_ID[L.setId];
+    body=`<div class="banner ${r.cls}"><span class="big">${r.head}</span><p>${r.sub}</p></div>
+      <div class="card"><h3>두 문제 비교 · ${esc(set.t)}</h3><div class="cmp"><div><span class="pill">다른 사람들의 문제</span><p>${esc(set.c.q)}</p><p>답 <span class="answer-chip" style="font-size:1rem">${esc(fmtAns(set.c))}</span></p></div><div class="l"><span class="pill liar">라이어의 문제</span><p>${esc(set.l.q)}</p><p>답 <span class="answer-chip" style="font-size:1rem">${esc(fmtAns(set.l))}</span></p></div></div></div>
+      <div class="card"><h3>지목 결과</h3>${vTally(G)}</div>
+      <div class="row"><button class="btn primary" data-act="lAgain">같은 사람들로 한 판 더</button><button class="btn ghost" data-act="lSetup">참가자 바꾸기</button></div>`;
+  }
+  return `<div class="wrap">${top}${steps}${body}</div>`;
+}
+
+/* ===================== 이벤트 ===================== */
+document.getElementById("app").addEventListener("click",e=>{
+  const b=e.target.closest("[data-act]"); if(!b||b.disabled) return;
+  const f=A[b.dataset.act]; if(f) f(b.dataset,b);
+});
+init();
+document.getElementById("app").addEventListener("keydown",e=>{
+  if(e.key!=="Enter"||e.isComposing) return;
+  const el=e.target.closest("[data-enter]"); if(!el) return;
+  e.preventDefault(); const f=A[el.dataset.enter]; if(f) f(el.dataset,el);
+});
+</script>
+
+</body>
+</html>
